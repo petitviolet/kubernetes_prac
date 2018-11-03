@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python
+  labels:
+    name: python
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python
+  template:
+    metadata:
+      labels:
+        app: python
+    spec:
+      initContainers:
+        - name: busybox
+          image: busybox
+          command:
+            - sh
+            - -c
+            - echo 'from initContainer!' > /tmp/properties/message.txt
+            - for i in $(seq 1 100); do wget python-service && exit 0 || sleep 3; done; exit 1
+          volumeMounts:
+            - name: properties
+              mountPath: /tmp/properties
+      containers:
+        - name: python
+          image: python:3.7.1
+          tty: true
+          command:
+            - sh
+            - -c
+            - "python -m http.server 8080 --directory /var/tmp/properties"
+          volumeMounts:
+            - name: properties
+              mountPath: /var/tmp/properties
+      volumes:
+        - name: properties
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: python
+
+
