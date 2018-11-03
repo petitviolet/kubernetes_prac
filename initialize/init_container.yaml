@@ -25,12 +25,12 @@ spec:
           volumeMounts:
             - name: storage
               mountPath: /tmp/git/
-        - name: busybox
-          image: busybox
-          command:
-            - sh
-            - -c
-            - for i in $(seq 1 100); do wget python-service && exit 0 || sleep 3; done; exit 1
+        # - name: check-service
+        #   image: busybox
+        #   command:
+        #     - sh
+        #     - -c
+        #     - until nslookup python-service; do echo 'waiting for python-service'; sleep 2 ; done;
       containers:
         - name: python
           image: python:3.7.1
@@ -52,7 +52,7 @@ kind: Service
 metadata:
   name: python-service
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
   - port: 8080
     targetPort: 8080
