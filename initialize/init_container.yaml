@@ -15,16 +15,22 @@ spec:
         app: python
     spec:
       initContainers:
+        - name: git
+          image: alpine/git
+          command:
+            - git
+            - clone
+            - https://github.com/petitviolet/kubernetes_prac.git
+            - /tmp/git/
+          volumeMounts:
+            - name: storage
+              mountPath: /tmp/git/
         - name: busybox
           image: busybox
           command:
             - sh
             - -c
-            - echo 'from initContainer!' > /tmp/properties/message.txt
             - for i in $(seq 1 100); do wget python-service && exit 0 || sleep 3; done; exit 1
-          volumeMounts:
-            - name: properties
-              mountPath: /tmp/properties
       containers:
         - name: python
           image: python:3.7.1
@@ -32,12 +38,12 @@ spec:
           command:
             - sh
             - -c
-            - "python -m http.server 8080 --directory /var/tmp/properties"
+            - "python -m http.server 8080 --directory /www/public"
           volumeMounts:
-            - name: properties
-              mountPath: /var/tmp/properties
+            - name: storage
+              mountPath: /www/public
       volumes:
-        - name: properties
+        - name: storage
           emptyDir: {}
 
 ---
@@ -46,7 +52,7 @@ kind: Service
 metadata:
   name: python-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
   - port: 8080
     targetPort: 8080
