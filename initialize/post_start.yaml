@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python
+  labels:
+    name: python
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python
+  template:
+    metadata:
+      labels:
+        app: python
+    spec:
+      containers:
+        - name: python
+          image: python:latest
+          tty: true
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - "mkdir -p /var/log/backup/${HOSTNAME} \
+                    && mv /var/log/python.log /var/log/backup/${HOSTNAME} \
+                    && echo START! >> /var/log/python.log"
+          volumeMounts:
+            - name: log
+              mountPath: /var/log
+          command:
+            - sh
+            - -c
+            - "python -m http.server 8080 --directory /var/log/ 1>/var/log/python.log 2>/var/log/python.log"
+          volumeMounts:
+            - name: log
+              mountPath: /var/log
+      volumes:
+        - name: log
+          hostPath:
+            path: /var/log/python
+            type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: python
